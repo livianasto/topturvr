@@ -164,3 +164,185 @@ enum OperationStatus {
   READY
   CLOSED
 }
+
+// ---------------------------------------------------------------------------
+// CRM e clientes (DATA_MODEL.md secao "CRM e clientes") - primeiro corte
+//
+// Escopo desta fase: apenas Customer como cadastro base. Passenger, Lead,
+// Pipeline, Opportunity, Activity ficam para o modulo de CRM completo
+// (docs/features/crm-sales.md).
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id         String         @id @default(uuid())
+  name       String
+  document   String?
+  email      String?
+  phone      String?
+  status     CustomerStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  createdBy  String?        @map("created_by")
+  archivedAt DateTime?      @map("archived_at")
+
+  reservations Reservation[]
+
+  @@map("customers")
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ---------------------------------------------------------------------------
+// Fornecedores e recursos (DATA_MODEL.md secao "Fornecedores e recursos")
+// - primeiro corte
+//
+// Decisao de produto: usamos um status simples ACTIVE/INACTIVE para o MVP.
+// O workflow completo de homologacao (PROSPECT -> UNDER_REVIEW -> APPROVED
+// -> SUSPENDED/REJECTED, ja documentado em DATA_MODEL.md secao 4) fica
+// para quando o modulo de homologacao de fornecedores for implementado.
+//
+// Item (recurso ofertado por um fornecedor, ex: "Onibus 46 lugares",
+// "Hotel X", "Seguro viagem X") e terreno novo: nao existe precedente em
+// DATA_MODEL.md. Modelado aqui como pertencendo a exatamente um Supplier,
+// com uma categoria (tipo de servico) e capacidade opcional (relevante
+// para veiculos). Sem preco - preco fica na Reserva, nao no catalogo.
+// ---------------------------------------------------------------------------
+
+model Supplier {
+  id           String         @id @default(uuid())
+  legalName    String         @map("legal_name")
+  document     String?
+  category     String?
+  contactEmail String?        @map("contact_email")
+  contactPhone String?        @map("contact_phone")
+  status       SupplierStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  createdBy    String?        @map("created_by")
+  archivedAt   DateTime?      @map("archived_at")
+
+  items Item[]
+
+  @@map("suppliers")
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Item {
+  id          String       @id @default(uuid())
+  supplierId  String       @map("supplier_id")
+  name        String
+  category    ItemCategory @default(OTHER)
+  capacity    Int?
+  description String?
+  status      ItemStatus   @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  createdBy   String?      @map("created_by")
+  archivedAt  DateTime?    @map("archived_at")
+
+  supplier     Supplier      @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  reservations Reservation[]
+
+  @@index([supplierId])
+  @@map("items")
+}
+
+enum ItemCategory {
+  VEHICLE
+  HOTEL
+  INSURANCE
+  OTHER
+}
+
+enum ItemStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ---------------------------------------------------------------------------
+// Reserva (Reservation) - terreno novo, primeiro corte
+//
+// Decisao de produto (confirmada com o usuario): esta reserva e
+// intencionalmente independente de Trip/Operation - NAO e o Booking de
+// DATA_MODEL.md (que exige Trip) nem TripResource (que exige Trip +
+// Resource). E um registro standalone de Customer + Item + janela de
+// horario + dados comerciais (destino, valores, passageiros), preenchivel
+// sem nenhuma Trip/Operation pre-existente.
+//
+// voucherNumber: numero sequencial permanente (Postgres autoincrement),
+// nunca reaproveitado nem reiniciado - usado como referencia unica da
+// venda/voucher nos relatorios e conferencias. Reservas nunca sao
+// apagadas de verdade, apenas arquivadas via archivedAt.
+//
+// FKs para Customer e Item usam onDelete: Restrict: nunca queremos que
+// apagar um Customer ou Item apague silenciosamente reservas associadas.
+//
+// Valores em centavos + moeda (ADR-003). marginCents e calculado e
+// armazenado no momento da criacao (saleAmountCents - purchaseAmountCents).
+// ---------------------------------------------------------------------------
+
+model Reservation {
+  id                  String            @id @default(uuid())
+  voucherNumber       Int               @unique @default(autoincrement()) @map("voucher_number")
+  customerId          String            @map("customer_id")
+  itemId              String            @map("item_id")
+  departureAt         DateTime          @map("departure_at")
+  returnAt            DateTime          @map("return_at")
+  destinationCity     String            @map("destination_city")
+  destinationState    String            @map("destination_state")
+  tourStops           String?           @map("tour_stops")
+  purchaseAmountCents Int               @map("purchase_amount_cents")
+  saleAmountCents     Int               @map("sale_amount_cents")
+  marginCents         Int               @map("margin_cents")
+  currency            String            @default("BRL")
+  responsibleName     String            @map("responsible_name")
+  responsiblePhone    String?           @map("responsible_phone")
+  customerNotes       String?           @map("customer_notes")
+  supplierNotes       String?           @map("supplier_notes")
+  status              ReservationStatus @default(PENDING)
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  createdBy           String?           @map("created_by")
+  archivedAt          DateTime?         @map("archived_at")
+
+  customer   Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  item       Item                   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  passengers ReservationPassenger[]
+
+  @@index([customerId])
+  @@index([itemId])
+  @@index([departureAt])
+  @@map("reservations")
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+// Dados sensiveis (CPF/RG/data de nascimento) - BR-CUS-003: visiveis
+// somente a papeis com necessidade operacional. Preenchimento pelo
+// proprio cliente via link (autoatendimento) e trabalho futuro, ainda
+// nao implementado - por enquanto a equipe interna preenche.
+model ReservationPassenger {
+  id            String    @id @default(uuid())
+  reservationId String    @map("reservation_id")
+  fullName      String    @map("full_name")
+  cpf           String?
+  rg            String?
+  birthDate     DateTime? @map("birth_date")
+  phone         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_passengers")
+}

@@ -12,6 +12,10 @@ export const PERMISSIONS = {
   USER_MANAGE: "user:manage",
   FINANCE_VIEW: "finance:view",
   FINANCE_MANAGE: "finance:manage",
+  CUSTOMER_MANAGE: "customer:manage",
+  SUPPLIER_MANAGE: "supplier:manage",
+  ITEM_MANAGE: "item:manage",
+  RESERVATION_MANAGE: "reservation:manage",
   TECHNICAL_MANAGE_SECRETS: "technical:manage_secrets",
 } as const;
 

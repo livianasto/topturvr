@@ -1,5 +1,5 @@
-/**
- * Placeholder - ver docs/features/crm-sales.md. Ainda sem implementacao;
- * este arquivo existe apenas para fixar o limite do modulo no filesystem.
- */
-export {};
+export { createCustomerUseCase as createCustomer } from "./use-cases/create-customer";
+export { listCustomersUseCase as listCustomers } from "./use-cases/list-customers";
+export { archiveCustomerUseCase as archiveCustomer } from "./use-cases/archive-customer";
+export { getCustomerById } from "./use-cases/get-customer-by-id";
+export type { CustomerSummary, CustomerStatus } from "./domain/types";
