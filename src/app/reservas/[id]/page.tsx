@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/shared/auth/session";
-import { getReservation, addPassenger } from "@/modules/reservations";
+import {
+  getReservation,
+  addPassenger,
+  buildCustomerEmail,
+  buildSupplierEmail,
+  buildMailtoLink,
+} from "@/modules/reservations";
+import { env } from "@/shared/env";
 import { Button } from "@/shared/ui/components/button";
 import { Input } from "@/shared/ui/components/input";
 import { revalidatePath } from "next/cache";
@@ -52,6 +59,30 @@ export default async function ReservaDetalhePage({
     revalidatePath(`/reservas/${id}`);
   }
 
+  const emailData = {
+    voucherNumber: reservation.voucherNumber,
+    customerName: reservation.customer.name,
+    customerEmail: reservation.customer.email,
+    supplierName: reservation.item.supplier.legalName,
+    supplierEmail: reservation.item.supplier.contactEmail,
+    itemName: reservation.item.name,
+    itemCapacity: reservation.item.capacity,
+    departureAt: reservation.departureAt,
+    returnAt: reservation.returnAt,
+    destinationCity: reservation.destinationCity,
+    destinationState: reservation.destinationState,
+    tourStops: reservation.tourStops,
+    purchaseAmountCents: reservation.purchaseAmountCents,
+    saleAmountCents: reservation.saleAmountCents,
+    responsibleName: reservation.responsibleName,
+    responsiblePhone: reservation.responsiblePhone,
+    customerNotes: reservation.customerNotes,
+    supplierNotes: reservation.supplierNotes,
+    passengers: reservation.passengers,
+  };
+  const customerEmail = buildCustomerEmail(emailData);
+  const supplierEmail = buildSupplierEmail(emailData);
+
   return (
     <main className="mx-auto max-w-4xl p-8 space-y-8">
       <div>
@@ -77,6 +108,57 @@ export default async function ReservaDetalhePage({
         {reservation.supplierNotes && (
           <div className="col-span-2"><span className="font-medium">Obs. fornecedor:</span> {reservation.supplierNotes}</div>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Enviar confirmações</h2>
+        <p className="text-sm text-slate-500">
+          Os botões abrem seu programa de e-mail com tudo preenchido, incluindo
+          cópia oculta para a Toptur. Nada é enviado automaticamente — você
+          revisa e clica em enviar.
+        </p>
+        <div className="flex gap-3">
+          <a
+            href={buildMailtoLink(customerEmail, env.TOPTUR_COPY_EMAIL)}
+            className="inline-flex h-10 items-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-700"
+          >
+            E-mail para o cliente
+          </a>
+          <a
+            href={buildMailtoLink(supplierEmail, env.TOPTUR_COPY_EMAIL)}
+            className="inline-flex h-10 items-center rounded-md border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50"
+          >
+            E-mail para o fornecedor
+          </a>
+        </div>
+        {(!reservation.customer.email || !reservation.item.supplier.contactEmail) && (
+          <p className="text-sm text-amber-700">
+            Atenção:{" "}
+            {!reservation.customer.email && "o cliente não tem e-mail cadastrado"}
+            {!reservation.customer.email && !reservation.item.supplier.contactEmail && " e "}
+            {!reservation.item.supplier.contactEmail && "o fornecedor não tem e-mail cadastrado"}
+            . O destinatário virá em branco — preencha manualmente ou cadastre o e-mail.
+          </p>
+        )}
+        <details className="text-sm">
+          <summary className="cursor-pointer text-slate-600">
+            Ver os textos dos e-mails
+          </summary>
+          <div className="mt-3 space-y-4">
+            <div>
+              <div className="font-medium">Cliente — {customerEmail.subject}</div>
+              <pre className="mt-1 whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-3 text-xs">
+                {customerEmail.body}
+              </pre>
+            </div>
+            <div>
+              <div className="font-medium">Fornecedor — {supplierEmail.subject}</div>
+              <pre className="mt-1 whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-3 text-xs">
+                {supplierEmail.body}
+              </pre>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section className="space-y-3">

@@ -8,6 +8,8 @@ export const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
+  /** Endereco que recebe copia oculta (CCO) dos e-mails de reserva. */
+  TOPTUR_COPY_EMAIL: z.string().email().optional(),
   SEED_LIVIA_EMAIL: z.string().email().optional(),
   SEED_LIVIA_PASSWORD: z.string().min(8).optional(),
   SEED_ROGERIO_EMAIL: z.string().email().optional(),
