@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: toptur
+      POSTGRES_PASSWORD: toptur
+      POSTGRES_DB: toptur_operations
+    ports:
+      - "5432:5432"
+    volumes:
+      - toptur_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toptur"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  toptur_pgdata:
