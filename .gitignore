@@ -23,6 +23,9 @@ npm-debug.log*
 # testing
 coverage/
 
+# typescript
+*.tsbuildinfo
+
 # misc
 .DS_Store
 *.pem
