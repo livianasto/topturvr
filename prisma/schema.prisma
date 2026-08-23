@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identidade e governança (DATA_MODEL.md secao "Identidade e governanca")
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  passwordHash String?    @map("password_hash")
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  createdBy    String?    @map("created_by")
+  archivedAt   DateTime?  @map("archived_at")
+
+  roles       UserRole[]
+  auditEvents AuditEvent[] @relation("AuditActor")
+
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  label       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String @id @default(uuid())
+  key         String @unique
+  description String?
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  before     Json?
+  after      Json?
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_events")
+}
+
+// ---------------------------------------------------------------------------
+// Stub de Operacoes (Trip / Operation)
+//
+// Escopo desta fase: apenas o suficiente para compilar e migrar. O modelo
+// completo de Trip (Product, Booking, ChecklistItem, TripResource,
+// FinancialEntry etc, conforme DATA_MODEL.md) fica para os tickets de
+// modulo de operacoes/financeiro.
+//
+// Decisao de produto (confirmada com o usuario): Operation NAO substitui
+// Trip. Trip e a jornada comercial/produto; Operation e o registro do
+// processo operacional de execucao dessa Trip (prontidao, checklist,
+// alocacao de recursos, fechamento - modelado em detalhe futuramente).
+// Cardinalidade escolhida para o MVP: 1:1 (uma trip tem uma operacao).
+// ---------------------------------------------------------------------------
+
+model Trip {
+  id         String     @id @default(uuid())
+  code       String     @unique
+  name       String
+  startAt    DateTime   @map("start_at")
+  endAt      DateTime   @map("end_at")
+  status     TripStatus @default(DRAFT)
+  capacity   Int
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  createdBy  String?    @map("created_by")
+  archivedAt DateTime?  @map("archived_at")
+
+  operation Operation?
+
+  @@map("trips")
+}
+
+enum TripStatus {
+  DRAFT
+  PLANNING
+  ON_SALE
+  CONFIRMED
+  READY
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+  CANCELLED
+}
+
+model Operation {
+  id             String          @id @default(uuid())
+  tripId         String          @unique @map("trip_id")
+  status         OperationStatus @default(NOT_STARTED)
+  readinessScore Int?            @map("readiness_score")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  createdBy      String?         @map("created_by")
+  archivedAt     DateTime?       @map("archived_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("operations")
+}
+
+enum OperationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  READY
+  CLOSED
+}
