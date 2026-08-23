@@ -291,6 +291,11 @@ enum ItemStatus {
 model Reservation {
   id                  String            @id @default(uuid())
   voucherNumber       Int               @unique @default(autoincrement()) @map("voucher_number")
+  // Codigo secreto do link publico de autopreenchimento de passageiros
+  // (/p/<token>). Aleatorio e nao adivinhavel; quem tem o link consegue
+  // adicionar passageiros sem login. Nao expira - para invalidar, gerar
+  // um novo token.
+  publicToken         String            @unique @default(uuid()) @map("public_token")
   customerId          String            @map("customer_id")
   itemId              String            @map("item_id")
   departureAt         DateTime          @map("departure_at")

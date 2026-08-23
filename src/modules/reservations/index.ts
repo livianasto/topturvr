@@ -11,6 +11,13 @@ export {
   buildMailtoLink,
 } from "./use-cases/build-reservation-emails";
 export type { ReservationEmail, ReservationEmailData } from "./use-cases/build-reservation-emails";
+export {
+  getPublicReservation,
+  addPassengerPublicly,
+  InvalidPublicTokenError,
+  ReservationFullError,
+  ReservationClosedError,
+} from "./use-cases/public-passenger-form";
 export { getReservationUseCase as getReservation } from "./use-cases/get-reservation";
 export { getSupplierReportUseCase as getSupplierReport } from "./use-cases/get-supplier-report";
 export { getSupplierReportDetailUseCase as getSupplierReportDetail } from "./use-cases/get-supplier-report-detail";

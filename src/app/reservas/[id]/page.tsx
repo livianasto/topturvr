@@ -82,6 +82,8 @@ export default async function ReservaDetalhePage({
   };
   const customerEmail = buildCustomerEmail(emailData);
   const supplierEmail = buildSupplierEmail(emailData);
+  const baseUrl = env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const publicUrl = `${baseUrl}/p/${reservation.publicToken}`;
 
   return (
     <main className="mx-auto max-w-4xl p-8 space-y-8">
@@ -159,6 +161,28 @@ export default async function ReservaDetalhePage({
             </div>
           </div>
         </details>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Link para o cliente preencher</h2>
+        <p className="text-sm text-slate-500">
+          Envie este link para o cliente ou responsável cadastrar os passageiros
+          sozinho. Quem abre o link não precisa de senha e não vê valores nem a
+          margem — só os dados da viagem e a lista de nomes.
+        </p>
+        <input
+          readOnly
+          value={publicUrl}
+          className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-xs"
+        />
+        <a
+          href={publicUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block text-sm underline text-slate-600"
+        >
+          Abrir o formulário para conferir
+        </a>
       </section>
 
       <section className="space-y-3">
