@@ -15,6 +15,18 @@ function formatDateTime(date: Date) {
   return new Date(date).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pendente",
+  CONFIRMED: "Confirmada",
+  CANCELLED: "Cancelada",
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  PENDING: "rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700",
+  CONFIRMED: "rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800",
+  CANCELLED: "rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800",
+};
+
 export default async function ReservasPage() {
   const user = await requireUser();
   const [reservations, customers, items] = await Promise.all([
@@ -155,6 +167,7 @@ export default async function ReservasPage() {
                 <th className="py-2 pr-4">Destino</th>
                 <th className="py-2 pr-4">Venda</th>
                 <th className="py-2 pr-4">Margem</th>
+                <th className="py-2 pr-4">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -172,11 +185,16 @@ export default async function ReservasPage() {
                   <td className="py-2 pr-4">{reservation.destinationCity}/{reservation.destinationState}</td>
                   <td className="py-2 pr-4">{formatCents(reservation.saleAmountCents)}</td>
                   <td className="py-2 pr-4">{formatCents(reservation.marginCents)}</td>
+                  <td className="py-2 pr-4">
+                    <span className={STATUS_STYLES[reservation.status]}>
+                      {STATUS_LABELS[reservation.status]}
+                    </span>
+                  </td>
                 </tr>
               ))}
               {reservations.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-4 text-center text-slate-500">
+                  <td colSpan={9} className="py-4 text-center text-slate-500">
                     Nenhuma reserva cadastrada.
                   </td>
                 </tr>

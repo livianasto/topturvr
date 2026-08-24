@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/shared/auth/session";
+import Link from "next/link";
 import {
   getReservation,
   addPassenger,
+  updatePassenger,
+  removePassenger,
+  changeReservationStatus,
   buildCustomerEmail,
   buildSupplierEmail,
   buildMailtoLink,
@@ -59,6 +63,51 @@ export default async function ReservaDetalhePage({
     revalidatePath(`/reservas/${id}`);
   }
 
+  async function updatePassengerAction(formData: FormData) {
+    "use server";
+    const actor = await requireUser();
+
+    await updatePassenger({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      passengerId: String(formData.get("passengerId")),
+      fullName: String(formData.get("fullName")),
+      cpf: formData.get("cpf")?.toString() || undefined,
+      rg: formData.get("rg")?.toString() || undefined,
+      birthDate: formData.get("birthDate")?.toString() || undefined,
+      phone: formData.get("phone")?.toString() || undefined,
+    });
+
+    revalidatePath(`/reservas/${id}`);
+  }
+
+  async function removePassengerAction(formData: FormData) {
+    "use server";
+    const actor = await requireUser();
+
+    await removePassenger({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      passengerId: String(formData.get("passengerId")),
+    });
+
+    revalidatePath(`/reservas/${id}`);
+  }
+
+  async function changeStatusAction(formData: FormData) {
+    "use server";
+    const actor = await requireUser();
+
+    await changeReservationStatus({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      reservationId: id,
+      status: formData.get("status") as "CONFIRMED" | "CANCELLED",
+    });
+
+    revalidatePath(`/reservas/${id}`);
+  }
+
   const emailData = {
     voucherNumber: reservation.voucherNumber,
     customerName: reservation.customer.name,
@@ -87,9 +136,38 @@ export default async function ReservaDetalhePage({
 
   return (
     <main className="mx-auto max-w-4xl p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold font-mono">Voucher #{reservation.voucherNumber}</h1>
-        <p className="text-sm text-slate-500">Logado como {user.email}</p>
+      <div className="space-y-3">
+        <div>
+          <h1 className="text-2xl font-semibold font-mono">Voucher #{reservation.voucherNumber}</h1>
+          <p className="text-sm text-slate-500">Logado como {user.email}</p>
+        </div>
+        {reservation.status === "CANCELLED" ? (
+          <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Reserva cancelada. O registro fica preservado, mas não entra nos
+            relatórios.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={`/reservas/${id}/editar`}
+              className="inline-flex h-10 items-center rounded-md border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50"
+            >
+              Editar reserva
+            </Link>
+            {reservation.status === "PENDING" && (
+              <form action={changeStatusAction}>
+                <input type="hidden" name="status" value="CONFIRMED" />
+                <Button type="submit">Confirmar reserva</Button>
+              </form>
+            )}
+            <form action={changeStatusAction}>
+              <input type="hidden" name="status" value="CANCELLED" />
+              <Button type="submit" variant="outline">
+                Cancelar reserva
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
 
       <section className="grid grid-cols-2 gap-4 text-sm border border-slate-200 rounded-md p-4">
@@ -216,37 +294,78 @@ export default async function ReservaDetalhePage({
 
       <section className="space-y-3">
         <h2 className="text-lg font-medium">Passageiros ({reservation.passengers.length})</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-slate-300 text-left">
-                <th className="py-2 pr-4">Nome</th>
-                <th className="py-2 pr-4">CPF</th>
-                <th className="py-2 pr-4">RG</th>
-                <th className="py-2 pr-4">Nascimento</th>
-                <th className="py-2 pr-4">Telefone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reservation.passengers.map((passenger) => (
-                <tr key={passenger.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4">{passenger.fullName}</td>
-                  <td className="py-2 pr-4">{passenger.cpf ?? "-"}</td>
-                  <td className="py-2 pr-4">{passenger.rg ?? "-"}</td>
-                  <td className="py-2 pr-4">{formatDate(passenger.birthDate)}</td>
-                  <td className="py-2 pr-4">{passenger.phone ?? "-"}</td>
-                </tr>
-              ))}
-              {reservation.passengers.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-4 text-center text-slate-500">
-                    Nenhum passageiro adicionado ainda.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+
+        {reservation.passengers.length === 0 ? (
+          <p className="text-sm text-slate-500">Nenhum passageiro adicionado ainda.</p>
+        ) : (
+          <ul className="space-y-2">
+            {reservation.passengers.map((passenger) => (
+              <li key={passenger.id} className="rounded-md border border-slate-200 p-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-sm">
+                    <span className="font-medium">{passenger.fullName}</span>
+                    <span className="text-slate-500">
+                      {" "}
+                      · CPF {passenger.cpf ?? "-"} · RG {passenger.rg ?? "-"} ·{" "}
+                      {formatDate(passenger.birthDate)} · {passenger.phone ?? "-"}
+                    </span>
+                  </div>
+                  <form action={removePassengerAction}>
+                    <input type="hidden" name="passengerId" value={passenger.id} />
+                    <Button type="submit" variant="outline" size="sm">
+                      Remover
+                    </Button>
+                  </form>
+                </div>
+
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs text-slate-600">
+                    Editar dados
+                  </summary>
+                  <form
+                    action={updatePassengerAction}
+                    className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-5"
+                  >
+                    <input type="hidden" name="passengerId" value={passenger.id} />
+                    <div className="col-span-2 space-y-1 md:col-span-1">
+                      <label className="text-xs font-medium">Nome</label>
+                      <Input name="fullName" defaultValue={passenger.fullName} required />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">CPF</label>
+                      <Input name="cpf" defaultValue={passenger.cpf ?? ""} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">RG</label>
+                      <Input name="rg" defaultValue={passenger.rg ?? ""} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">Nascimento</label>
+                      <Input
+                        name="birthDate"
+                        type="date"
+                        defaultValue={
+                          passenger.birthDate
+                            ? new Date(passenger.birthDate).toISOString().slice(0, 10)
+                            : ""
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">Telefone</label>
+                      <Input name="phone" defaultValue={passenger.phone ?? ""} />
+                    </div>
+                    <div className="col-span-2 md:col-span-5">
+                      <Button type="submit" size="sm">
+                        Salvar
+                      </Button>
+                    </div>
+                  </form>
+                </details>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </main>
   );

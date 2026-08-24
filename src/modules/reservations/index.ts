@@ -6,6 +6,20 @@ export {
 export { listReservationsUseCase as listReservations } from "./use-cases/list-reservations";
 export { addPassengerUseCase as addPassenger } from "./use-cases/add-passenger";
 export {
+  updateReservationUseCase as updateReservation,
+  ReservationNotFoundError,
+  CancelledReservationError,
+} from "./use-cases/update-reservation";
+export {
+  changeReservationStatusUseCase as changeReservationStatus,
+  InvalidStatusTransitionError,
+} from "./use-cases/change-reservation-status";
+export {
+  removePassengerUseCase as removePassenger,
+  PassengerNotFoundError,
+} from "./use-cases/remove-passenger";
+export { updatePassengerUseCase as updatePassenger } from "./use-cases/update-passenger";
+export {
   buildCustomerEmail,
   buildSupplierEmail,
   buildMailtoLink,
