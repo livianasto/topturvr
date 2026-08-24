@@ -3,6 +3,8 @@ import { z } from "zod";
 export const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().url(),
+  /** Conexao direta ao banco, usada apenas pelas migracoes do Prisma. */
+  DIRECT_DATABASE_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(32),
   NEXTAUTH_URL: z.string().url().optional(),
   LOG_LEVEL: z

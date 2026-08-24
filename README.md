@@ -41,6 +41,10 @@ npm run build
 
 `/api/health` reporta o status da conexão com o banco.
 
+## Publicação
+
+Passo a passo para colocar no ar (Vercel + Neon): [DEPLOY.md](DEPLOY.md).
+
 ## Princípio central
 
 Nenhuma tecnologia deve ser implantada sem problema comprovado, processo definido, responsável nomeado, KPI de sucesso e fonte da verdade estabelecida.

@@ -4,6 +4,7 @@ import { envSchema } from "./env.schema";
 const validEnv = {
   NODE_ENV: "test",
   DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+  DIRECT_DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
   NEXTAUTH_SECRET: "a".repeat(32),
 };
 
@@ -15,6 +16,12 @@ describe("envSchema", () => {
 
   it("rejeita quando DATABASE_URL esta ausente", () => {
     const { DATABASE_URL: _omit, ...rest } = validEnv;
+    const result = envSchema.safeParse(rest);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejeita quando DIRECT_DATABASE_URL esta ausente", () => {
+    const { DIRECT_DATABASE_URL: _omit, ...rest } = validEnv;
     const result = envSchema.safeParse(rest);
     expect(result.success).toBe(false);
   });

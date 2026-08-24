@@ -1,10 +1,21 @@
 generator client {
   provider = "prisma-client-js"
+  // "native" cobre a maquina de desenvolvimento; o segundo alvo e o
+  // sistema usado pelos servidores da Vercel, senao o cliente gerado
+  // no build nao roda em producao.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // url: conexao usada pela aplicacao. Em producao (Vercel/Neon) deve ser
+  // a conexao AGRUPADA (pooled), porque cada requisicao serverless abre
+  // sua propria conexao e o banco esgotaria o limite sem o agrupador.
+  url = env("DATABASE_URL")
+  // directUrl: conexao DIRETA, usada so pelas migracoes - elas precisam de
+  // uma sessao estavel, que o agrupador nao garante. Em desenvolvimento as
+  // duas apontam para o mesmo Postgres local.
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ---------------------------------------------------------------------------
