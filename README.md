@@ -43,7 +43,7 @@ npm run build
 
 ## Publicação
 
-Passo a passo para colocar no ar (Vercel + Neon): [DEPLOY.md](DEPLOY.md).
+Passo a passo para colocar no ar (Railway): [DEPLOY.md](DEPLOY.md).
 
 ## Princípio central
 

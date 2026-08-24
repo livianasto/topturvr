@@ -1,20 +1,25 @@
 generator client {
   provider = "prisma-client-js"
-  // "native" cobre a maquina de desenvolvimento; o segundo alvo e o
-  // sistema usado pelos servidores da Vercel, senao o cliente gerado
-  // no build nao roda em producao.
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  // "native" cobre a maquina de desenvolvimento; os outros dois cobrem os
+  // sistemas dos servidores (Railway usa Debian, Vercel usa RHEL). Sem o
+  // alvo certo o build passa mas a aplicacao quebra em producao.
+  binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
-  // url: conexao usada pela aplicacao. Em producao (Vercel/Neon) deve ser
-  // a conexao AGRUPADA (pooled), porque cada requisicao serverless abre
-  // sua propria conexao e o banco esgotaria o limite sem o agrupador.
+  // url: conexao usada pela aplicacao.
   url = env("DATABASE_URL")
-  // directUrl: conexao DIRETA, usada so pelas migracoes - elas precisam de
-  // uma sessao estavel, que o agrupador nao garante. Em desenvolvimento as
-  // duas apontam para o mesmo Postgres local.
+  // directUrl: conexao usada pelas migracoes.
+  //
+  // No Railway (e em desenvolvimento) as duas sao IGUAIS: o Postgres e uma
+  // instancia normal e a aplicacao roda em container fixo, entao nao ha
+  // agrupador no meio.
+  //
+  // A separacao existe para bancos serverless (ex: Neon), onde a aplicacao
+  // usa a conexao agrupada - cada requisicao abriria a propria conexao e
+  // esgotaria o limite - e as migracoes precisam da conexao direta, por
+  // exigirem sessao estavel.
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
