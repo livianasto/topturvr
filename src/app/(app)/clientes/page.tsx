@@ -1,5 +1,10 @@
 import { requireUser } from "@/shared/auth/session";
-import { createCustomer, listCustomers, archiveCustomer } from "@/modules/crm";
+import {
+  createCustomer,
+  listCustomers,
+  archiveCustomer,
+  updateCustomer,
+} from "@/modules/crm";
 import { Button } from "@/shared/ui/components/button";
 import { Input } from "@/shared/ui/components/input";
 import { revalidatePath } from "next/cache";
@@ -15,6 +20,23 @@ export default async function ClientesPage() {
     await createCustomer({
       actorId: actor.id,
       actorPermissions: actor.permissions,
+      name: String(formData.get("name")),
+      document: formData.get("document")?.toString() || undefined,
+      email: formData.get("email")?.toString() || undefined,
+      phone: formData.get("phone")?.toString() || undefined,
+    });
+
+    revalidatePath("/clientes");
+  }
+
+  async function updateCustomerAction(formData: FormData) {
+    "use server";
+    const actor = await requireUser();
+
+    await updateCustomer({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      customerId: String(formData.get("customerId")),
       name: String(formData.get("name")),
       document: formData.get("document")?.toString() || undefined,
       email: formData.get("email")?.toString() || undefined,
@@ -70,45 +92,67 @@ export default async function ClientesPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-medium">Todos os clientes</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-slate-300 text-left">
-                <th className="py-2 pr-4">Nome</th>
-                <th className="py-2 pr-4">Documento</th>
-                <th className="py-2 pr-4">E-mail</th>
-                <th className="py-2 pr-4">Telefone</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((customer) => (
-                <tr key={customer.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4">{customer.name}</td>
-                  <td className="py-2 pr-4">{customer.document ?? "-"}</td>
-                  <td className="py-2 pr-4">{customer.email ?? "-"}</td>
-                  <td className="py-2 pr-4">{customer.phone ?? "-"}</td>
-                  <td className="py-2 pr-4">{customer.status}</td>
-                  <td className="py-2">
-                    <form action={archiveCustomerAction}>
-                      <input type="hidden" name="customerId" value={customer.id} />
-                      <Button type="submit" variant="outline" size="sm">Arquivar</Button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-              {customers.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-4 text-center text-slate-500">
-                    Nenhum cliente cadastrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <h2 className="text-lg font-medium">Todos os clientes ({customers.length})</h2>
+
+        {customers.length === 0 ? (
+          <p className="text-sm text-slate-500">Nenhum cliente cadastrado.</p>
+        ) : (
+          <ul className="space-y-2">
+            {customers.map((customer) => (
+              <li key={customer.id} className="rounded-md border border-slate-200 p-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-sm">
+                    <span className="font-medium">{customer.name}</span>
+                    <span className="text-slate-500">
+                      {" "}
+                      · {customer.document ?? "sem documento"} · {customer.email ?? "sem e-mail"} ·{" "}
+                      {customer.phone ?? "sem telefone"}
+                    </span>
+                  </div>
+                  <form action={archiveCustomerAction}>
+                    <input type="hidden" name="customerId" value={customer.id} />
+                    <Button type="submit" variant="outline" size="sm">
+                      Arquivar
+                    </Button>
+                  </form>
+                </div>
+
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs text-slate-600">
+                    Editar dados
+                  </summary>
+                  <form
+                    action={updateCustomerAction}
+                    className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4"
+                  >
+                    <input type="hidden" name="customerId" value={customer.id} />
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">Nome</label>
+                      <Input name="name" defaultValue={customer.name} required />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">Documento</label>
+                      <Input name="document" defaultValue={customer.document ?? ""} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">E-mail</label>
+                      <Input name="email" type="email" defaultValue={customer.email ?? ""} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">Telefone</label>
+                      <Input name="phone" defaultValue={customer.phone ?? ""} />
+                    </div>
+                    <div className="col-span-2 md:col-span-4">
+                      <Button type="submit" size="sm">
+                        Salvar
+                      </Button>
+                    </div>
+                  </form>
+                </details>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </main>
   );

@@ -22,6 +22,19 @@ export function findSupplierById(id: string) {
   return prisma.supplier.findUnique({ where: { id } });
 }
 
+export function updateSupplier(
+  id: string,
+  data: {
+    legalName?: string;
+    document?: string | null;
+    category?: string | null;
+    contactEmail?: string | null;
+    contactPhone?: string | null;
+  },
+) {
+  return prisma.supplier.update({ where: { id }, data });
+}
+
 export function archiveSupplier(id: string) {
   return prisma.supplier.update({
     where: { id },

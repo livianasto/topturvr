@@ -21,6 +21,18 @@ export function findCustomerById(id: string) {
   return prisma.customer.findUnique({ where: { id } });
 }
 
+export function updateCustomer(
+  id: string,
+  data: {
+    name?: string;
+    document?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  },
+) {
+  return prisma.customer.update({ where: { id }, data });
+}
+
 export function archiveCustomer(id: string) {
   return prisma.customer.update({
     where: { id },
